@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentWidth
@@ -19,6 +20,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -26,6 +28,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Color.Companion.Yellow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -38,28 +41,21 @@ import kotlinx.coroutines.launch
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val dataStoreManager = DataStoreManager(this)
+        val dataStoreManager = ProtoDataStoreManager(this)
 
         setContent {
             DataStoreTheme {
-                val bgColorState = remember {
-                    mutableStateOf(Blue.value)
-                }
-                val textSizeState = remember {
-                    mutableIntStateOf(40)
-                }
-                LaunchedEffect(key1 = true) {
-                    dataStoreManager.getSettings().collect { settings ->
-                        bgColorState.value = settings.bgColor.toULong()
-                        textSizeState.intValue = settings.textSize
-                    }
-                }
+
+                val settingsState = dataStoreManager
+                    .getSettings()
+                    .collectAsState(initial = SettingsData())
+
 
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = Color(bgColorState.value)
+                    color = Color(settingsState.value.bgColor)
                 ) {
-                    MainScreen(dataStoreManager, textSizeState)
+                    MainScreen(dataStoreManager, settingsState.value.textSize)
                 }
             }
         }
@@ -68,8 +64,8 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun MainScreen(
-    dataStoreManager: DataStoreManager,
-    textSizeState: MutableState<Int>
+    dataStoreManager: ProtoDataStoreManager,
+    textSize: Int
 ) {
     val coroutine = rememberCoroutineScope()
     Column(
@@ -79,14 +75,14 @@ fun MainScreen(
     ) {
         Box(
             modifier = Modifier
-                .fillMaxSize(0.5f)
+                .fillMaxSize(0.6f)
                 .wrapContentWidth(align = Alignment.CenterHorizontally)
                 .wrapContentHeight(align = Alignment.CenterVertically)
         ) {
             Text(
                 text = "Some text",
                 color = Color.White,
-                fontSize = textSizeState.value.sp
+                fontSize = textSize.sp
             )
         }
         Button(onClick = {
@@ -94,7 +90,7 @@ fun MainScreen(
                 dataStoreManager.saveSettings(
                     SettingsData(
                         20,
-                        Blue.value.toLong()
+                        Blue.value
                     )
                 )
             }
@@ -108,7 +104,7 @@ fun MainScreen(
                 dataStoreManager.saveSettings(
                     SettingsData(
                         30,
-                        Red.value.toLong()
+                        Red.value
                     )
                 )
             }
@@ -122,7 +118,7 @@ fun MainScreen(
                 dataStoreManager.saveSettings(
                     SettingsData(
                         40,
-                        Green.value.toLong()
+                        Green.value
                     )
                 )
             }
@@ -130,6 +126,23 @@ fun MainScreen(
             Text(text = "Green")
         }
         Spacer(modifier = Modifier.height(10.dp))
-    }
 
+        Button(onClick = {
+            coroutine.launch {
+                dataStoreManager.saveBgColor(Yellow.value)
+            }
+        }) {
+            Text(text = "Yellow screen")
+        }
+        Spacer(modifier = Modifier.height(10.dp))
+
+        Button(onClick = {
+            coroutine.launch {
+                dataStoreManager.saveTextSize(50)
+            }
+        }) {
+            Text(text = "Text max size")
+        }
+        Spacer(modifier = Modifier.height(10.dp))
+    }
 }
